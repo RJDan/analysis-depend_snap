@@ -1,0 +1,156 @@
+name: rjd-analysis-depend # you probably want to 'snapcraft register <name>'
+title: data analysis package collection # you probably want to 'snapcraft register <name>'
+version: '0.0.1' # just for humans, typically '1.2+git' or '1.3.2'
+summary: packages collection used in data analyses # 79 char long summary
+description: |
+        "A collection of common packages, libraries for data analysis software. The bulk of these were added to support r-project. This snap is used for sharing 'content' interface with other snaps that I package. It can also be used as a snap dependency when building snaps, but this will add all of the packages below and bulk up the snap. DOES NOT WORK AS A STAND-ALONE SNAP!"
+        * The description above refers to the software: https://github.com/RJDan/Analysiscore_snap
+        * I have packaged the software as a snap for **personal use** but I have made the snap available for free.
+        * I maintain the software itself.
+        * I _DO_ use this snap. It _has been superficially tested_ on my system. I __do not__ track the latest version.
+        * __This snap works in devmode only.__
+        * Packaging 'style' : collection of PPAs for linux machines.
+        * License refers to the original software, not the snapcraft 'code'.
+        * More info:
+        * This snap is meant to be used to for common library dependencies for other snaps.
+
+website: https://github.com/RJDan/Analysiscore_snap
+source-code : https://github.com/RJDan/Analysiscore_snap
+#icon: Rlogo.png
+
+grade: stable # must be 'stable' to release into candidate/stable channels
+confinement: strict # use 'strict' once you have the right plugs and slots
+#license: GPL-3.0-only
+base: core22 # the base snap is the execution environment for this snap
+architectures:
+    - amd64
+    - arm
+
+slots:
+    rjd-analysis-depend:
+        interface: content
+        content: rjd-analysis-depend-0-0-1-2204
+        read: 
+            - $SNAP/lib
+
+layout: # these are linked to default positions but should be changed with the content interface when the appropriate snap is created
+  /etc/perl/XML/SAX/ParserDetails.ini:
+     symlink: $SNAP/usr/share/perl5/XML/SAX/ParserDetails.ini
+  /var/lib/texmf/ls-R-TEXMFMAIN:
+    symlink: $SNAP/usr/share/texmf/ls-R 
+
+# apps:
+#     none:
+
+parts:
+    fix-pkgconfig-files:
+        plugin: nil
+        override-build: |
+          cat <<'EOF' > $SNAPCRAFT_PART_INSTALL/fix-pkgconfig-files.sh
+          for pcfile in $SNAPCRAFT_PART_INSTALL/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pkgconfig/*.pc $SNAPCRAFT_PART_INSTALL/usr/lib/pkgconfig/*.pc $SNAPCRAFT_PART_INSTALL/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET/pkgconfig/*.pc $SNAPCRAFT_PART_INSTALL/usr/local/lib/pkgconfig/*.pc; do
+            sed -i -E "s~^((include|lib)dir=)/usr(/local)?~\1\\\${prefix}~g" $pcfile || true
+            sed -i -E "s~^((exec_)?prefix=)(/usr(/local)?)~\1/\3~" $pcfile || true
+          done
+          EOF
+          chmod +x $SNAPCRAFT_PART_INSTALL/fix-pkgconfig-files.sh
+        prime:
+        - -*
+    fix-symlinks:
+# REF: https://unix.stackexchange.com/questions/100918/convert-absolute-symlink-to-relative-symlink-with-simple-linux-command
+        plugin: nil
+        override-build: |
+          cat <<'EOF' > $SNAPCRAFT_PART_INSTALL/fix-symlinks.sh
+          cd $SNAPCRAFT_PART_INSTALL
+          find . -lname '/*' |
+          while read l ; do
+            echo ln -sf $(echo $(echo $l | sed 's|/[^/]*|/..|g')$(readlink $l) | sed 's/.....//') $l
+          done |
+          sh
+          EOF
+          chmod +x $SNAPCRAFT_PART_INSTALL/fix-symlinks.sh
+        prime:
+        - -*
+    sra-dpend:
+        plugin: nil
+        build-packages:
+               - less
+               - tree
+               - libxml2-dev
+               - libbison-dev
+               - libfl-dev
+               - libssl-dev
+               - python3 # needed for checking the install and nothing else
+               - python3-dev # needed for checking the install and nothing else
+        stage-packages:
+               - flex
+               - openssl
+               - libcrypt1
+               - bison
+               - libxml2
+    r-dpend:
+        plugin: nil
+        build-packages:
+             - libatlas-base-dev # Automatically Tuned Linear Algebra Software, generic static
+             - libblas-dev #Basic Linear Algebra Subroutines 3, static library
+             - liblapack-dev #Library of linear algebra routines 3 - static version
+             - liblapacke-dev #Library of linear algebra routines 3 () - Headers
+             - libtmglib-dev #test matrix generators of LAPACK - development files
+             - openjdk-17-jdk
+             - openjfx
+             - xorg-dev #Basic Linear Algebra Subroutines 3, static library
+             - libharfbuzz-dev
+             - libreadline-dev
+             - libbz2-dev
+             - liblzma-dev
+             - libpcre2-dev
+             - libcurl3-gnutls-dev
+             - zlib1g-dev
+             - libc6-dev
+        stage-packages:
+             - bzip2
+             - cfortran
+             - fontconfig
+             - fonts-texgyre
+             - gcc
+             - gfortran
+             - ghostscript
+             - libatlas-doc #Automatically Tuned Linear Algebra Software, documentation
+             - libatlas3-base #Automatically Tuned Linear Algebra Software, generic shared
+             - libblas3 #Basic Linear Algebra Reference implementations, shared library
+             - libbz2-1.0
+             - libc6
+             - libcrypt1
+             - libcurl3-gnutls # gnutls flavour
+             - libfreetype6
+             - libfribidi-bin
+             - libgfortran5 # Recommended by snapcraft
+             - libglib2.0-0
+             - libharfbuzz-bin
+             - libicu70
+             - libjpeg8
+             - liblapack-doc #Library of linear algebra routines 3 - documentation
+             - liblapack3 #Library of linear algebra routines 3 - shared version
+             - liblapacke #Library of linear algebra routines 3 - C lib shared version
+             - liblzma5
+             - libncurses5
+             - libpangocairo-1.0-0
+             - libpcre2-8-0 # Only the 8 bit is needed
+             - libpng16-16
+             - libquadmath0 # Recommended by snapcraft
+             - libreadline8
+             - libtiff5
+             - libtirpc3
+             - libtmglib3 #test matrix generators of LAPACK - shared version
+             - libx11-6
+             - libxext6
+             - libxmu6
+             - libxt6
+             - openjdk-17-jre
+             - openjfx
+             - pkg-config
+             - qpdf
+             - readline-common
+             - texinfo
+             - wget
+             - xz-utils
+             - zlib1g
